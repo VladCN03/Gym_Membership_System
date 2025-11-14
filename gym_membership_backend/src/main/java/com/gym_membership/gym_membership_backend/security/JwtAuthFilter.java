@@ -32,6 +32,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain chain) throws ServletException, IOException {
         String header = request.getHeader("Authorization");
+
+        // 👉 dacă nu avem Bearer token, lăsăm cererea să meargă mai departe (fără autentificare)
+        if (header == null || !header.startsWith("Bearer ")) {
+            chain.doFilter(request, response);
+            return;
+        }
+
+
         if (header != null && header.startsWith("Bearer ")) {
             String token = header.substring(7);
             try {
