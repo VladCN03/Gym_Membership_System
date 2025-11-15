@@ -27,11 +27,6 @@
           <v-list-item to="/trainers" title="Trainers" prepend-icon="mdi-dumbbell" />
           <v-list-item to="/members" title="Members" prepend-icon="mdi-account-group" />
           <v-list-item to="/stats" title="Stats" prepend-icon="mdi-chart-bar" />
-          <v-list-item
-            title="AI Recommender"
-            prepend-icon="mdi-robot-outline"
-            to="/ai"
-          ></v-list-item>
         </v-list>
       </v-navigation-drawer>
 

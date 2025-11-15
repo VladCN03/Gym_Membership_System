@@ -1,80 +1,56 @@
 <template>
-  <v-container class="pa-6">
-    <div class="d-flex justify-space-between align-center mb-6">
-      <h1 class="text-h4">Trainers</h1>
-      <v-btn color="primary" @click="openCreateDialog">Add Trainer</v-btn>
-    </div>
+  <v-container>
+    <!-- Adaugă trainer -->
+    <v-card class="pa-4 mb-4">
+      <v-card-title>Adaugă Trainer</v-card-title>
+      <v-card-text>
+        <v-text-field v-model="form.name" label="Name" />
+        <v-text-field v-model="form.email" label="Email" />
+        <v-btn color="primary" @click="saveTrainer">Salvează</v-btn>
+      </v-card-text>
+    </v-card>
 
-    <!-- TRAINERS TABLE -->
-    <v-data-table
-      :items="trainers"
-      :headers="headers"
-      item-key="id"
-      class="elevation-1"
-      :loading="loading"
-    >
-      <!-- specialties text -->
-      <!-- eslint-disable-next-line vue/valid-v-slot -->
-      <template #item.specialties="{ item }">
-        {{ item.specialties || '—' }}
-      </template>
+    <!-- Lista traineri -->
+    <v-card>
+      <v-card-title>Lista Traineri</v-card-title>
+      <v-data-table
+        :headers="headers"
+        :items="trainers"
+        :loading="loading"
+        loading-text="Loading items..."
+      >
+        <!-- eslint-disable-next-line vue/valid-v-slot -->
+        <template #item.actions="{ item }">
+          <div class="d-flex gap-2">
+            <v-btn size="small" color="error" variant="outlined" @click="onDelete(item.id)">
+              Delete
+            </v-btn>
+          </div>
+        </template>
+      </v-data-table>
+    </v-card>
 
-      <!-- eslint-disable-next-line vue/valid-v-slot -->
-      <template #item.actions="{ item }">
-        <v-btn icon="mdi-pencil" size="small" variant="text" @click="openEditDialog(item)" />
-        <v-btn
-          icon="mdi-delete"
-          size="small"
-          variant="text"
-          color="red"
-          @click="deleteTrainer(item)"
+    <!-- Editează trainer -->
+    <v-card class="mt-4 pa-4">
+      <v-card-title>Editează Trainer</v-card-title>
+      <v-card-text>
+        <v-select
+          v-model="editId"
+          :items="trainers"
+          item-title="name"
+          item-value="id"
+          label="Alege Trainer"
+          @update:model-value="prefill"
+          clearable
         />
-      </template>
-    </v-data-table>
-
-    <!-- CREATE / EDIT DIALOG -->
-    <v-dialog v-model="dialog" max-width="600px">
-      <v-card>
-        <v-card-title class="text-h5">
-          {{ editedTrainer.id ? 'Edit Trainer' : 'Add Trainer' }}
-        </v-card-title>
-
-        <v-card-text>
-          <v-row dense>
-            <v-col cols="12" md="6">
-              <v-text-field v-model="editedTrainer.name" label="Name" outlined dense required />
-            </v-col>
-
-            <v-col cols="12" md="6">
-              <v-text-field
-                v-model="editedTrainer.email"
-                label="Email"
-                outlined
-                dense
-                type="email"
-                required
-              />
-            </v-col>
-
-            <v-col cols="12">
-              <v-text-field
-                v-model="editedTrainer.specialties"
-                label="Specialties (comma separated)"
-                outlined
-                dense
-                hint="e.g. weight_loss, strength_training, hypertrophy"
-                persistent-hint
-              />
-            </v-col>
-          </v-row>
-        </v-card-text>
-
-        <v-card-actions class="justify-end">
-          <v-btn variant="text" @click="closeDialog">Cancel</v-btn>
-          <v-btn color="primary" :loading="saving" @click="saveTrainer"> Save </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+        <v-text-field v-model="editForm.name" label="Name" />
+        <v-text-field v-model="editForm.email" label="Email" />
+        <div class="mt-2">
+          <v-btn color="primary" :disabled="!editId" @click="onUpdate"> Actualizează </v-btn>
+          <v-btn variant="text" @click="resetEdit">Resetează</v-btn>
+        </div>
+      </v-card-text>
+    </v-card>
   </v-container>
 </template>
 
@@ -84,98 +60,67 @@ import { Trainers } from '@/api'
 
 const trainers = ref([])
 const loading = ref(false)
-const saving = ref(false)
-const dialog = ref(false)
+const form = ref({ name: '', email: '' })
 
-const editedTrainer = ref({
-  id: null,
-  name: '',
-  email: '',
-  specialties: '',
-})
+// câmpuri pentru editare
+const editId = ref(null)
+const editForm = ref({ name: '', email: '' })
 
 const headers = [
-  { title: 'ID', key: 'id', sortable: true, width: 70 },
+  { title: 'ID', key: 'id', width: 60 },
   { title: 'Name', key: 'name' },
   { title: 'Email', key: 'email' },
-  { title: 'Specialties', key: 'specialties' },
-  { title: 'Actions', key: 'actions', sortable: false, width: 120 },
+  { title: 'Actions', key: 'actions', sortable: false, width: 160 },
 ]
 
-// === LOAD DATA ===
-async function loadAll() {
+// ----------------- FUNCȚII -----------------
+async function load() {
   loading.value = true
   try {
     trainers.value = await Trainers.all()
-  } catch (err) {
-    console.error(err)
-    alert('Failed to load trainers. Check backend.')
+  } catch (e) {
+    console.error(e)
   } finally {
     loading.value = false
   }
 }
 
-onMounted(loadAll)
-
-// === CRUD ===
-function openCreateDialog() {
-  editedTrainer.value = {
-    id: null,
-    name: '',
-    email: '',
-    specialties: '',
-  }
-  dialog.value = true
-}
-
-function openEditDialog(item) {
-  editedTrainer.value = {
-    id: item.id,
-    name: item.name,
-    email: item.email,
-    specialties: item.specialties || '',
-  }
-  dialog.value = true
-}
-
-function closeDialog() {
-  dialog.value = false
-}
-
 async function saveTrainer() {
-  if (!editedTrainer.value.name || !editedTrainer.value.email) {
-    alert('Name and email are required.')
-    return
-  }
-
-  saving.value = true
-  try {
-    const payload = { ...editedTrainer.value }
-
-    if (payload.id) {
-      await Trainers.update(payload.id, payload)
-    } else {
-      await Trainers.create(payload)
-    }
-
-    dialog.value = false
-    await loadAll()
-  } catch (err) {
-    console.error(err)
-    alert('Failed to save trainer. Check backend.')
-  } finally {
-    saving.value = false
-  }
+  if (!form.value.name || !form.value.email) return
+  await Trainers.create(form.value)
+  form.value = { name: '', email: '' }
+  await load()
 }
 
-async function deleteTrainer(item) {
-  if (!confirm(`Delete trainer "${item.name}"?`)) return
-  try {
-    await Trainers.delete(item.id)
-    await loadAll()
-  } catch (err) {
-    console.error(err)
-    alert('Failed to delete trainer.')
-  }
+function startEdit(item) {
+  editId.value = item.id
+  editForm.value = { name: item.name, email: item.email }
 }
+
+function prefill(id) {
+  const t = trainers.value.find((x) => x.id === id)
+  if (t) startEdit(t)
+}
+
+function resetEdit() {
+  editId.value = null
+  editForm.value = { name: '', email: '' }
+}
+
+async function onUpdate() {
+  if (!editId.value) return
+  await Trainers.update(editId.value, editForm.value)
+  resetEdit()
+  await load()
+}
+
+async function onDelete(id) {
+  const ok = confirm('Sigur vrei să ștergi acest trainer?')
+  if (!ok) return
+  await Trainers.delete(id)
+  if (editId.value === id) resetEdit()
+  await load()
+}
+
+onMounted(load)
 </script>

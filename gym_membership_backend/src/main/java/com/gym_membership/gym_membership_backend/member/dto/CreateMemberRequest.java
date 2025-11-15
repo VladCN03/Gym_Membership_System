@@ -5,10 +5,5 @@ import jakarta.validation.constraints.*;
 public record CreateMemberRequest(
         @NotBlank String name,
         @Email(message="Email invalid") @NotBlank String email,
-        Long trainerId,
-        String goal,
-        String experience,
-        String budgetTier,
-        String schedule
-
+        Long trainerId
 ) {}

@@ -1,69 +1,58 @@
 <template>
-  <v-container class="pa-6">
-    <div class="d-flex justify-space-between align-center mb-6">
-      <h1 class="text-h4">Membership Types</h1>
-      <v-btn color="primary" @click="openCreateDialog">Add Membership Type</v-btn>
-    </div>
+  <v-container>
+    <!-- Adaugă tip abonament -->
+    <v-card class="pa-4 mb-4">
+      <v-card-title>Adaugă Tip Abonament</v-card-title>
+      <v-card-text>
+        <!-- folosește 'type' în form -->
+        <v-text-field v-model="form.type" label="Name" />
+        <v-text-field v-model="form.price" label="Price" type="number" />
+        <v-btn color="primary" @click="saveType">Salvează</v-btn>
+      </v-card-text>
+    </v-card>
 
-    <!-- MEMBERSHIP TYPES TABLE -->
-    <v-data-table
-      :items="types"
-      :headers="headers"
-      item-key="id"
-      class="elevation-1"
-      :loading="loading"
-    >
-      <!-- price formatting -->
-      <!-- eslint-disable-next-line vue/valid-v-slot -->
-      <template #item.price="{ item }">
-        {{ formatPrice(item.price) }}
-      </template>
+    <!-- Lista tipuri abonament -->
+    <v-card>
+      <v-card-title>Lista Tipuri de Abonament</v-card-title>
+      <v-data-table
+        :headers="headers"
+        :items="types"
+        :loading="loading"
+        loading-text="Loading items..."
+      >
+        <!-- eslint-disable-next-line vue/valid-v-slot -->
+        <template #item.actions="{ item }">
+          <div class="d-flex gap-2">
+            <v-btn size="small" color="error" variant="outlined" @click="onDelete(item.id)">
+              Delete
+            </v-btn>
+          </div>
+        </template>
+      </v-data-table>
+    </v-card>
 
-      <!-- actions -->
-      <!-- eslint-disable-next-line vue/valid-v-slot -->
-      <template #item.actions="{ item }">
-        <v-btn icon="mdi-pencil" size="small" variant="text" @click="openEditDialog(item)" />
-        <v-btn
-          icon="mdi-delete"
-          size="small"
-          variant="text"
-          color="red"
-          @click="deleteType(item)"
+    <!-- Editează abonament -->
+    <v-card class="mt-4 pa-4">
+      <v-card-title>Editează Tip Abonament</v-card-title>
+      <v-card-text>
+        <v-select
+          v-model="editId"
+          :items="types"
+          item-title="type"
+          item-value="id"
+          label="Alege Abonament"
+          @update:model-value="prefill"
+          clearable
         />
-      </template>
-    </v-data-table>
-
-    <!-- CREATE / EDIT DIALOG -->
-    <v-dialog v-model="dialog" max-width="500px">
-      <v-card>
-        <v-card-title class="text-h5">
-          {{ editedType.id ? 'Edit Membership Type' : 'Add Membership Type' }}
-        </v-card-title>
-
-        <v-card-text>
-          <v-row dense>
-            <v-col cols="12">
-              <v-text-field v-model="editedType.type" label="Name" outlined dense required />
-            </v-col>
-            <v-col cols="12">
-              <v-text-field
-                v-model="editedType.price"
-                label="Price"
-                type="number"
-                outlined
-                dense
-                min="0"
-              />
-            </v-col>
-          </v-row>
-        </v-card-text>
-
-        <v-card-actions class="justify-end">
-          <v-btn variant="text" @click="closeDialog">Cancel</v-btn>
-          <v-btn color="primary" :loading="saving" @click="saveType"> Save </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+        <!-- folosește 'type' și la edit -->
+        <v-text-field v-model="editForm.type" label="Name" />
+        <v-text-field v-model="editForm.price" label="Price" type="number" />
+        <div class="mt-2">
+          <v-btn color="primary" :disabled="!editId" @click="onUpdate">Actualizează</v-btn>
+          <v-btn variant="text" @click="resetEdit">Resetează</v-btn>
+        </div>
+      </v-card-text>
+    </v-card>
   </v-container>
 </template>
 
@@ -73,105 +62,69 @@ import { MembershipTypes } from '@/api'
 
 const types = ref([])
 const loading = ref(false)
-const saving = ref(false)
-const dialog = ref(false)
+const form = ref({ type: '', price: 0 }) // ← consistent
 
-const editedType = ref({
-  id: null,
-  type: '',
-  price: 0,
-})
+const editId = ref(null)
+const editForm = ref({ type: '', price: 0 }) // ← consistent
 
 const headers = [
-  { title: 'ID', key: 'id', sortable: true, width: 70 },
+  { title: 'ID', key: 'id', width: 60 },
   { title: 'Name', key: 'type' },
   { title: 'Price', key: 'price' },
-  { title: 'Actions', key: 'actions', sortable: false, width: 120 },
+  { title: 'Actions', key: 'actions', sortable: false, width: 160 },
 ]
 
-// === LOAD DATA ===
-async function loadAll() {
+async function load() {
   loading.value = true
   try {
     types.value = await MembershipTypes.all()
-  } catch (err) {
-    console.error(err)
-    alert('Failed to load membership types. Check backend.')
   } finally {
     loading.value = false
   }
 }
 
-onMounted(loadAll)
-
-// === HELPERS ===
-function formatPrice(value) {
-  if (value == null) return '—'
-  const n = Number(value)
-  if (Number.isNaN(n)) return String(value)
-  return n.toFixed(2)
-}
-
-// === CRUD ===
-function openCreateDialog() {
-  editedType.value = {
-    id: null,
-    type: '',
-    price: 0,
-  }
-  dialog.value = true
-}
-
-function openEditDialog(item) {
-  editedType.value = {
-    id: item.id,
-    type: item.type,
-    price: item.price,
-  }
-  dialog.value = true
-}
-
-function closeDialog() {
-  dialog.value = false
-}
-
 async function saveType() {
-  if (!editedType.value.type) {
-    alert('Name is required.')
-    return
-  }
-
-  saving.value = true
-  try {
-    const payload = {
-      ...editedType.value,
-      price: Number(editedType.value.price ?? 0),
-    }
-
-    if (payload.id) {
-      await MembershipTypes.update(payload.id, payload)
-    } else {
-      await MembershipTypes.create(payload)
-    }
-
-    dialog.value = false
-    await loadAll()
-  } catch (err) {
-    console.error(err)
-    alert('Failed to save membership type. Check backend.')
-  } finally {
-    saving.value = false
-  }
+  if (!form.value.type || form.value.price === null || form.value.price === '') return
+  await MembershipTypes.create({
+    type: form.value.type,
+    price: Number(form.value.price),
+  })
+  form.value = { type: '', price: 0 }
+  await load()
 }
 
-async function deleteType(item) {
-  if (!confirm(`Delete membership type "${item.type}"?`)) return
-  try {
-    await MembershipTypes.delete(item.id)
-    await loadAll()
-  } catch (err) {
-    console.error(err)
-    alert('Failed to delete membership type.')
-  }
+function startEdit(item) {
+  editId.value = item.id
+  editForm.value = { type: item.type, price: item.price }
 }
+
+function prefill(id) {
+  const t = types.value.find((x) => x.id === id)
+  if (t) startEdit(t)
+}
+
+function resetEdit() {
+  editId.value = null
+  editForm.value = { type: '', price: 0 }
+}
+
+async function onUpdate() {
+  if (!editId.value) return
+  await MembershipTypes.update(editId.value, {
+    type: editForm.value.type,
+    price: Number(editForm.value.price),
+  })
+  resetEdit()
+  await load()
+}
+
+async function onDelete(id) {
+  const ok = confirm('Sigur vrei să ștergi acest tip de abonament?')
+  if (!ok) return
+  await MembershipTypes.delete(id)
+  if (editId.value === id) resetEdit()
+  await load()
+}
+
+onMounted(load)
 </script>

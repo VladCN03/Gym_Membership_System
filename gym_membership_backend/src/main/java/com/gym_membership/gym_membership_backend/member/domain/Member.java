@@ -5,31 +5,21 @@ import com.gym_membership.gym_membership_backend.trainer.domain.Trainer;
 import jakarta.persistence.*;
 import lombok.*;
 
-@Entity
-@Table(name = "member")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
+@Entity @Table(name="member")
+@Data @NoArgsConstructor @AllArgsConstructor @Builder
 public class Member {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable=false, length=150)
     private String name;
+
+    @Column(length=255)
     private String email;
 
-    // nou:
-    private String goal;
-    private String experience;
-    private String budgetTier;
-    private String schedule;
-
-    @ManyToOne
-    @JoinColumn(name = "trainer_id")
-    private Trainer trainer;
-
-    @ManyToOne
-    @JoinColumn(name = "membership_type_id")
+    @ManyToOne @JoinColumn(name="membership_type_id")
     private MembershipType membershipType;
+
+    @ManyToOne @JoinColumn(name="trainer_id")
+    private Trainer trainer;
 }

@@ -1,7 +1,10 @@
 package com.gym_membership.gym_membership_backend.member.web;
 
 import com.gym_membership.gym_membership_backend.member.domain.Member;
-import com.gym_membership.gym_membership_backend.member.dto.*;
+import com.gym_membership.gym_membership_backend.member.dto.AssignMembershipRequest;
+import com.gym_membership.gym_membership_backend.member.dto.AssignTrainerRequest;
+import com.gym_membership.gym_membership_backend.member.dto.CreateMemberRequest;
+import com.gym_membership.gym_membership_backend.member.dto.MemberCreateDto;
 import com.gym_membership.gym_membership_backend.member.repo.MemberRepository;
 import com.gym_membership.gym_membership_backend.member.service.MemberService;
 import com.gym_membership.gym_membership_backend.trainer.domain.Trainer;
@@ -42,14 +45,6 @@ public class MemberController {
             return ResponseEntity.badRequest()
                     .body(Map.of("errors", List.of("Duplicate or invalid data")));
         }
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<?> update(
-            @PathVariable Long id,
-            @RequestBody UpdateMemberRequest dto) {
-
-        return ResponseEntity.ok(service.update(id, dto));
     }
 
 

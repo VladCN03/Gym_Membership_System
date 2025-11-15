@@ -16,13 +16,7 @@ const router = createRouter({
     { path: '/membership-types', component: MembershipTypes, meta: { auth: true } },
     { path: '/trainers', component: Trainers, meta: { auth: true } },
     { path: '/members', component: Members, meta: { auth: true } },
-    { path: '/stats', name: 'stats', component: Stats, meta: { auth: true } },
-    {
-      path: '/ai',
-      name: 'ai',
-      component: () => import('@/views/AiRecommendView.vue'),
-      meta: { auth: true },
-    },
+    { path: '/stats', name: 'stats', component: Stats },
   ],
 })
 
