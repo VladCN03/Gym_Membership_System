@@ -1,0 +1,8 @@
+{
+  "appId": "com.gym.membership",
+  "appName": "Android App",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "http"
+  }
+}

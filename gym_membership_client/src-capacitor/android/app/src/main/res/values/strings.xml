@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Android App</string>
+    <string name="title_activity_main">Android App</string>
+    <string name="package_name">com.gym.membership</string>
+    <string name="custom_url_scheme">com.gym.membership</string>
+</resources>

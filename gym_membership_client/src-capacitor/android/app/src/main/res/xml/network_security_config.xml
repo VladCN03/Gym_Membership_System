@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Permitem HTTP (cleartext) către 10.0.2.2 și localhost -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">localhost</domain>
+    </domain-config>
+
+    <!-- (optional) fallback - permite cleartext pentru rest -->
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
