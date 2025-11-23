@@ -11,12 +11,8 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
@@ -29,21 +25,14 @@ import java.util.List;
 @Configuration
 public class SecurityConfig {
 
-    // === Beans necesare pentru AuthController (rezolvă eroarea) ===
+    // --- Password encoder folosit la UserAccount (register / login) ---
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    @Bean
-    public UserDetailsService userDetailsService(PasswordEncoder encoder) {
-        UserDetails admin = User.builder()
-                .username("admin")
-                .password(encoder.encode("admin123"))
-                .roles("ADMIN")
-                .build();
-        return new InMemoryUserDetailsManager(admin);
-    }
+    // NU mai definim niciun UserDetailsService aici.
+    // Folosim DbUserDetailsService (@Service) ca unic UserDetailsService.
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration cfg) throws Exception {
@@ -76,15 +65,33 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // AI e public
                         .requestMatchers("/api/ai/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        // ==== CLIENT (read-only) ====
+                        .requestMatchers(HttpMethod.GET, "/api/members/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/trainers/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/membership-types/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/custom/**").permitAll()
+
+                        // login & register public
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/reset-password-simple").permitAll()
+
+                        // ✅ membrii logați pot cumpăra abonament
+                        .requestMatchers(HttpMethod.POST, "/api/members/assign-membership")
+                        .authenticated()
+
+                        // ==== ADMIN / STAFF protejat ====
                         .requestMatchers(HttpMethod.POST,   "/api/members/assign-trainer").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/members/**").authenticated()
                         .requestMatchers(HttpMethod.PUT,    "/api/trainers/**").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/trainers/**").authenticated()
                         .requestMatchers("/api/membership-types/**").authenticated()
+
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
@@ -95,9 +102,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration cfg = new CorsConfiguration();
-        cfg.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000", "http://localhost:8080"));
-        cfg.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
-        cfg.setAllowedHeaders(List.of("Authorization","Content-Type","Accept"));
+
+        // pentru dev, lăsăm orice origin (web, Quasar dev, emulator)
+        cfg.setAllowedOriginPatterns(List.of("*"));
+        cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        cfg.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
         cfg.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

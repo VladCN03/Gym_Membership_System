@@ -72,4 +72,29 @@ public class MemberController {
         memberRepository.deleteById(id); // 👈 folosești instanța, nu clasa
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/by-email")
+    public ResponseEntity<?> getByEmail(@RequestParam String email) {
+        return memberRepository.findByEmail(email)
+                .map(m -> {
+                    String membershipName = m.getMembershipType() != null
+                            ? m.getMembershipType().getType()
+                            : null;
+
+                    String trainerName = m.getTrainer() != null
+                            ? m.getTrainer().getName()
+                            : null;
+
+                    return ResponseEntity.ok(
+                            Map.of(
+                                    "id", m.getId(),
+                                    "name", m.getName(),
+                                    "email", m.getEmail(),
+                                    "membershipName", membershipName,
+                                    "trainerName", trainerName
+                            )
+                    );
+                })
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
 }

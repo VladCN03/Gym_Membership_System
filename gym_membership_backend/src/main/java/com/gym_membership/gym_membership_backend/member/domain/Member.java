@@ -1,6 +1,7 @@
 package com.gym_membership.gym_membership_backend.member.domain;
 
 import com.gym_membership.gym_membership_backend.membership.domain.MembershipType;
+import com.gym_membership.gym_membership_backend.security.Role;
 import com.gym_membership.gym_membership_backend.trainer.domain.Trainer;
 import jakarta.persistence.*;
 import lombok.*;
@@ -17,12 +18,27 @@ public class Member {
     private Long id;
 
     private String name;
+
+    @Column(nullable = false, unique = true)
     private String email;
 
-    // nou:
+    // === câmpuri pentru autentificare ===
+
+    @Column(name = "password")          // în DB deja ai coloana "password"
+    private String passwordHash;        // în parolă pui HASH-ul (BCrypt), nu text simplu
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role")
+    private Role role = Role.MEMBER;    // default MEMBER
+
+    // === câmpurile existente ===
+
     private String goal;
     private String experience;
+
+    @Column(name = "budget_tier")
     private String budgetTier;
+
     private String schedule;
 
     @ManyToOne
